@@ -2,24 +2,63 @@ import styled from "styled-components";
 import React, { useEffect, useState } from "react";
 
 /* ✅ modify this usePokemon custom hook to take in a query as an argument */
-export function usePokemon() {
+export function usePokemon(query) {
+
+  const [{data, errors, status}, setState] = useState({
+    data: null,
+    errors: null,
+    status: "idle"
+  });
+
+  useEffect(() => {
+    setState((state) => ({...state, errors: null, status: "pending"}))
+    fetch(`https://pokeapi.co/api/v2/pokemon/${query}`)
+      .then((resp) => {
+        if (resp.ok){
+          return resp.json()
+        } else {
+          return resp.text().then(er => {throw er})
+        }
+      })
+      .then((data) => {
+        setState({data, errors: null, status: "fulfilled"})
+      })
+      .catch((er) => {
+        setState({data: null, errors: [er], status: "rejected"})
+      })
+  }, [query])
+
+
+  return {data, status, errors}
   /* ✅ this hook should only return one thing: an object with the pokemon data */
+  
+  
 }
 
 function Pokemon({ query }) {
+
+
   /* 
    ✅ move the code from the useState and useEffect hooks into the usePokemon hook
    then, call the usePokemon hook to access the pokemon data in this component
   */
-  const [pokemon, setPokemon] = useState(null);
-  useEffect(() => {
-    fetch(`https://pokeapi.co/api/v2/pokemon/${query}`)
-      .then(r => r.json())
-      .then(setPokemon);
-  }, [query]);
+   const [{data: pokemon, status, errors}] = usePokemon(query)
+  
+  
 
   // 🚫 don't worry about the code below here, you shouldn't have to touch it
-  if (!pokemon) return <h3>Loading...</h3>;
+  if (status === "idle" || status === "pending"){
+    return <h3>Loading...</h3>;
+  }
+
+  if (status === "rejected"){
+    <div>
+      <h3>Errors</h3>
+      {errors.map((e) => {
+        return <p key={e}>{e}</p>
+      })}
+    </div>
+  }
 
   return (
     <div>
@@ -31,7 +70,6 @@ function Pokemon({ query }) {
     </div>
   );
 }
-
 export default function App() {
   const [query, setQuery] = useState("charmander");
 
